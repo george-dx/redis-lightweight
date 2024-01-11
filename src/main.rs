@@ -30,7 +30,7 @@ fn main() {
                 }
             }
             Err(e) => {
-                println!("Error: {}", e);
+                println!("Error at stream incoming: {}", e);
             }
         }
     }
