@@ -2,10 +2,11 @@ use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
 
 const BUFFER_SIZE: usize = 1024;
+const PING: &str = "*1\r\n$4\r\nping\r\n";
+const PONG: &str = "+PONG\r\n";
 
 fn respond_with_pong(stream: &mut TcpStream) {
-    let response = "+PONG\r\n";
-    stream.write(response.as_bytes()).unwrap();
+    stream.write(PONG.as_bytes()).unwrap();
     stream.flush().unwrap();
 }
 
@@ -25,7 +26,7 @@ fn main() {
                     let command = String::from_utf8_lossy(&buffer[..size]);
 
                     match command.as_ref() {
-                        "*1\r\n$4\r\nping\r\n" => {
+                        PING => {
                             respond_with_pong(&mut _stream);
                         }
                         _ => {
