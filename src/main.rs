@@ -16,16 +16,21 @@ fn main() {
         match stream {
             Ok(mut _stream) => {
                 println!("Accepted new connection");
-                let mut buffer = [0; BUFFER_SIZE];
-                let size = _stream.read(&mut buffer).unwrap();
-                let command = String::from_utf8_lossy(&buffer[..size]);
-
-                match command.as_ref() {
-                    "*1\r\n$4\r\nping\r\n" => {
-                        respond_with_pong(&mut _stream);
+                loop {
+                    let mut buffer = [0; BUFFER_SIZE];
+                    let size = _stream.read(&mut buffer).unwrap();
+                    if size == 0 {
+                        break;
                     }
-                    _ => {
-                        println!("Unknown command: {:?}", command);
+                    let command = String::from_utf8_lossy(&buffer[..size]);
+
+                    match command.as_ref() {
+                        "*1\r\n$4\r\nping\r\n" => {
+                            respond_with_pong(&mut _stream);
+                        }
+                        _ => {
+                            println!("Unknown command: {:?}", command);
+                        }
                     }
                 }
             }
