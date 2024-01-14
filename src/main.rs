@@ -1,5 +1,6 @@
 use std::io::{prelude::*, Error};
 use std::net::{TcpListener, TcpStream};
+use std::thread;
 
 const BUFFER_SIZE: usize = 1024;
 const PING: &str = "*1\r\n$4\r\nping\r\n";
@@ -42,6 +43,8 @@ fn main() {
     let listener = TcpListener::bind("127.0.0.1:6379").expect("Could not bind the listener");
 
     for stream in listener.incoming() {
-        handle_connection(stream);
+        thread::spawn(move || {
+            handle_connection(stream);
+        });
     }
 }
