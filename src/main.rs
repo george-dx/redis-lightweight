@@ -5,6 +5,8 @@ use std::thread;
 const BUFFER_SIZE: usize = 1024;
 const PING: &str = "*1\r\n$4\r\nping\r\n";
 const PONG: &str = "+PONG\r\n";
+const ECHO: &str = "*2\r\n$4\r\nECHO\r\n";
+
 
 fn respond_with_pong(stream: &mut TcpStream) {
     stream.write(PONG.as_bytes()).unwrap();
@@ -26,6 +28,9 @@ fn handle_connection(stream: Result<TcpStream, Error>) {
                 match command.as_ref() {
                     PING => {
                         respond_with_pong(&mut _stream);
+                    }
+                    ECHO => {
+
                     }
                     _ => {
                         println!("Unknown command: {:?}", command);
