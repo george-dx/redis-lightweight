@@ -5,12 +5,19 @@ use std::thread;
 const BUFFER_SIZE: usize = 1024;
 const PING: &str = "*1\r\n$4\r\nping\r\n";
 const PONG: &str = "+PONG\r\n";
-const ECHO: &str = "*2\r\n$4\r\nECHO\r\n";
-
+const ECHO: &str = "*2\r\n$4\r\necho\r\n";
 
 fn respond_with_pong(stream: &mut TcpStream) {
     stream.write(PONG.as_bytes()).unwrap();
     stream.flush().unwrap();
+}
+
+fn respond_with_message(stream: &mut TcpStream, command: &str) {
+    println!("{:?}", command);
+    let dollar = "$";
+    let splitted_command = command.split(dollar).collect::<Vec<&str>>();
+    let response = dollar.to_string() + splitted_command[2];
+    let _ = stream.write(response.as_bytes());
 }
 
 fn handle_connection(stream: Result<TcpStream, Error>) {
@@ -23,18 +30,15 @@ fn handle_connection(stream: Result<TcpStream, Error>) {
                 if size == 0 {
                     break;
                 }
-                let command = String::from_utf8_lossy(&buffer[..size]);
+                let command = String::from_utf8_lossy(&buffer[..size]).to_string();
+                let command_str = command.as_str();
 
-                match command.as_ref() {
-                    PING => {
-                        respond_with_pong(&mut _stream);
-                    }
-                    ECHO => {
-
-                    }
-                    _ => {
-                        println!("Unknown command: {:?}", command);
-                    }
+                if command_str.contains(PING) {
+                    respond_with_pong(&mut _stream);
+                } else if command_str.contains(ECHO) {
+                    respond_with_message(&mut _stream, command_str)
+                } else {
+                    println!("Unknown command: {:?}", command);
                 }
             }
         }
