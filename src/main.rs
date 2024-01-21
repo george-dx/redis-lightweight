@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::{prelude::*, Error};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
@@ -6,6 +7,24 @@ const BUFFER_SIZE: usize = 1024;
 const PING: &str = "*1\r\n$4\r\nping\r\n";
 const PONG: &str = "+PONG\r\n";
 const ECHO: &str = "*2\r\n$4\r\necho\r\n";
+
+struct Database {
+    db: HashMap<String, String>,
+}
+
+impl Database {
+    fn new() -> Database {
+        Database { db: HashMap::new() }
+    }
+
+    fn get(&self, key: &str) -> Option<&String> {
+        self.db.get(key)
+    }
+
+    fn set(&mut self, key: &str, value: &str) -> Option<String> {
+        self.db.insert(key.to_owned(), value.to_owned())
+    }
+}
 
 fn respond_with_pong(stream: &mut TcpStream) {
     stream.write(PONG.as_bytes()).unwrap();
