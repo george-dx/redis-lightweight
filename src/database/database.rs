@@ -17,8 +17,3 @@ impl Database {
         self.db.insert(key.to_owned(), value.to_owned())
     }
 }
-
-fn respond_with_pong(stream: &mut TcpStream) {
-    stream.write(PONG.as_bytes()).unwrap();
-    stream.flush().unwrap();
-}

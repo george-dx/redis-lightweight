@@ -18,6 +18,11 @@ fn respond_with_message(stream: &mut TcpStream, command: &str) {
     let _ = stream.write(response.as_bytes());
 }
 
+fn respond_with_pong(stream: &mut TcpStream) {
+    stream.write(PONG.as_bytes()).unwrap();
+    stream.flush().unwrap();
+}
+
 fn handle_connection(stream: Result<TcpStream, Error>) {
     match stream {
         Ok(mut _stream) => {
