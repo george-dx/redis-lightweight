@@ -9,6 +9,8 @@ const BUFFER_SIZE: usize = 1024;
 const PING: &str = "*1\r\n$4\r\nping\r\n";
 const PONG: &str = "+PONG\r\n";
 const ECHO: &str = "*2\r\n$4\r\necho\r\n";
+const SET: &str = "$3\r\nset\r\n";
+const GET: &str = "$3\r\nget\r\n";
 
 fn respond_with_message(stream: &mut TcpStream, command: &str) {
     println!("{:?}", command);
@@ -23,8 +25,29 @@ fn respond_with_pong(stream: &mut TcpStream) {
     stream.flush().unwrap();
 }
 
+fn database_set(database: &mut Database, stream: &mut TcpStream, command: &str) {
+    println!("{:?}", command);
+    let dollar = "$";
+    let splitted_command = command.split(dollar).collect::<Vec<&str>>();
+    database.set(splitted_command[2], splitted_command[3]);
+    let _ = stream.write("+OK\r\n".as_bytes());
+}
+
+fn database_get(database: &mut Database, stream: &mut TcpStream, command: &str) {
+    println!("{:?}", command);
+    let dollar = "$";
+    let splitted_command = command.split(dollar).collect::<Vec<&str>>();
+    if let Some(value) = database.get(splitted_command[2]) {
+        let response_parts = value.split("\r\n").collect::<Vec<&str>>();
+        let response = response_parts[1];
+        let _ = stream.write(format!("+{response}\r\n").as_bytes());
+    } else {
+        let _ = stream.write("+\r\n".as_bytes());
+    };
+}
+
 fn handle_connection(stream: Result<TcpStream, Error>) {
-    let db = Database::new();
+    let mut db = Database::new();
     match stream {
         Ok(mut _stream) => {
             println!("Accepted new connection");
@@ -40,7 +63,11 @@ fn handle_connection(stream: Result<TcpStream, Error>) {
                 if command_str.contains(PING) {
                     respond_with_pong(&mut _stream);
                 } else if command_str.contains(ECHO) {
-                    respond_with_message(&mut _stream, command_str) 
+                    respond_with_message(&mut _stream, command_str)
+                } else if command_str.contains(SET) {
+                    database_set(&mut db, &mut _stream, command_str);
+                } else if command_str.contains(GET) {
+                    database_get(&mut db, &mut _stream, command_str);
                 } else {
                     println!("Unknown command: {:?}", command);
                 }
