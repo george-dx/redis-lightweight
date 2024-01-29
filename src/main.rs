@@ -24,6 +24,7 @@ fn respond_with_pong(stream: &mut TcpStream) {
 }
 
 fn handle_connection(stream: Result<TcpStream, Error>) {
+    let db = Database::new();
     match stream {
         Ok(mut _stream) => {
             println!("Accepted new connection");
@@ -39,7 +40,7 @@ fn handle_connection(stream: Result<TcpStream, Error>) {
                 if command_str.contains(PING) {
                     respond_with_pong(&mut _stream);
                 } else if command_str.contains(ECHO) {
-                    respond_with_message(&mut _stream, command_str)
+                    respond_with_message(&mut _stream, command_str) 
                 } else {
                     println!("Unknown command: {:?}", command);
                 }
