@@ -4,6 +4,7 @@ use database::database::Database;
 use std::io::{prelude::*, Error};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
+use std::time::{Duration, SystemTime};
 
 const BUFFER_SIZE: usize = 1024;
 const PING: &str = "*1\r\n$4\r\nping\r\n";
@@ -26,21 +27,46 @@ fn respond_with_pong(stream: &mut TcpStream) {
 }
 
 fn database_set(database: &mut Database, stream: &mut TcpStream, command: &str) {
+    println!("Command: {:?}", command);
     let dollar = "$";
     let splitted_command = command.split(dollar).collect::<Vec<&str>>();
-    database.set(splitted_command[2], splitted_command[3]);
-    let _ = stream.write(OK.as_bytes());
+    if let Some(value) = splitted_command.get(5) {
+        let expiry_in_ms = &value[1..].replace("\r\n", "");
+        match expiry_in_ms.parse::<u64>() {
+            Ok(conversion) => {
+                let expiry_duration = Duration::from_millis(conversion);
+                // println!("{:?}", SystemTime::now() + expiry_duration);
+                database.set(
+                    splitted_command[2].to_string(),
+                    splitted_command[3].to_string(),
+                    Some(expiry_duration),
+                );
+                let _ = stream.write(OK.as_bytes());
+            }
+            Err(e) => {
+                println!("Error at u64 parse: {}", e);
+                let _ = stream.write("+\r\n".as_bytes());
+            }
+        }
+    } else {
+        database.set(
+            splitted_command[2].to_string(),
+            splitted_command[3].to_string(),
+            None,
+        );
+        let _ = stream.write(OK.as_bytes());
+    }
 }
 
 fn database_get(database: &mut Database, stream: &mut TcpStream, command: &str) {
     let dollar = "$";
     let splitted_command = command.split(dollar).collect::<Vec<&str>>();
-    if let Some(value) = database.get(splitted_command[2]) {
+    if let Some(value) = database.get(splitted_command[2].to_string()) {
         let response_parts = value.split("\r\n").collect::<Vec<&str>>();
         let response = response_parts[1];
         let _ = stream.write(format!("+{response}\r\n").as_bytes());
     } else {
-        let _ = stream.write("+\r\n".as_bytes());
+        let _ = stream.write("$-1\r\n".as_bytes());
     };
 }
 
