@@ -26,7 +26,6 @@ impl Database {
 
     pub fn set(&mut self, key: String, value: String, expire_ms: Option<Duration>) -> () {
         if let Some(expire_ms) = expire_ms {
-            // println!("{:?}", SystemTime::now() + expire_ms);
             self.db
                 .insert(key, (value, Some(SystemTime::now() + expire_ms)));
         } else {

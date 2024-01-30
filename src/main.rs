@@ -4,7 +4,7 @@ use database::database::Database;
 use std::io::{prelude::*, Error};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 const BUFFER_SIZE: usize = 1024;
 const PING: &str = "*1\r\n$4\r\nping\r\n";
@@ -27,7 +27,6 @@ fn respond_with_pong(stream: &mut TcpStream) {
 }
 
 fn database_set(database: &mut Database, stream: &mut TcpStream, command: &str) {
-    println!("Command: {:?}", command);
     let dollar = "$";
     let splitted_command = command.split(dollar).collect::<Vec<&str>>();
     if let Some(value) = splitted_command.get(5) {
@@ -35,7 +34,6 @@ fn database_set(database: &mut Database, stream: &mut TcpStream, command: &str) 
         match expiry_in_ms.parse::<u64>() {
             Ok(conversion) => {
                 let expiry_duration = Duration::from_millis(conversion);
-                // println!("{:?}", SystemTime::now() + expiry_duration);
                 database.set(
                     splitted_command[2].to_string(),
                     splitted_command[3].to_string(),
