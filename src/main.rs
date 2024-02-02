@@ -15,6 +15,27 @@ const GET: &str = "$3\r\nget\r\n";
 const CONFIG: &str = "$6\r\nconfig\r\n$";
 const OK: &str = "+OK\r\n";
 
+struct Config {
+    dir: Option<String>,
+    dbfilename: Option<String>,
+}
+
+impl Config {
+    pub fn new() -> Self {
+        Self {
+            dir: None,
+            dbfilename: None,
+        }
+    }
+
+    pub fn get(&self, key: &str) -> Option<String> {
+        match key.to_lowercase().as_str() {
+            "dir" => self.dir.clone(),
+            "dbfilename" => self.dbfilename.clone(),
+            _ => None,
+        }
+    }
+}
 
 fn to_bulk_string(get_type: &str, message: &str) -> String {
     let message_len = message.len();
