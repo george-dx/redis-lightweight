@@ -12,7 +12,15 @@ const PONG: &str = "+PONG\r\n";
 const ECHO: &str = "*2\r\n$4\r\necho\r\n";
 const SET: &str = "$3\r\nset\r\n";
 const GET: &str = "$3\r\nget\r\n";
+const CONFIG: &str = "$6\r\nconfig\r\n$";
 const OK: &str = "+OK\r\n";
+
+
+fn to_bulk_string(get_type: &str, message: &str) -> String {
+    let message_len = message.len();
+    let type_len = get_type.len();
+    format!("*2\r\n${}\r\n{}\r\n${}\r\n{}\r\n", type_len, get_type, message_len, message)
+}
 
 fn respond_with_message(stream: &mut TcpStream, command: &str) {
     let dollar = "$";
@@ -79,15 +87,30 @@ fn handle_connection(stream: Result<TcpStream, Error>) {
             }
             let command = String::from_utf8_lossy(&buffer[..size]).to_string();
             let command_str = command.as_str();
-
+            println!("{:?}", command_str);
             if command_str.contains(PING) {
                 respond_with_pong(&mut _stream);
             } else if command_str.contains(ECHO) {
                 respond_with_message(&mut _stream, command_str)
             } else if command_str.contains(SET) {
                 database_set(&mut db, &mut _stream, command_str);
-            } else if command_str.contains(GET) {
+            } else if command_str.contains(GET) && !command_str.contains(CONFIG) {
                 database_get(&mut db, &mut _stream, command_str);
+            } else if command_str.contains(CONFIG) {
+                let message_type ;
+                if command_str.contains("dir") {
+                    message_type = "dir";
+                } else {
+                    message_type = "dbfilename";
+                }
+                let splitted_command = command.split("$").collect::<Vec<&str>>();
+                if let Some(value) = db.get(splitted_command[2].to_string()) {
+                    let response_parts = value.split("\r\n").collect::<Vec<&str>>();
+                    let response = response_parts[1];
+                    let _ = _stream.write_all(to_bulk_string(message_type,response).as_bytes());
+                } else {
+                    let _ = _stream.write_all("$-1\r\n".as_bytes());
+                }
             } else {
                 println!("Unknown command: {:?}", command);
             }
