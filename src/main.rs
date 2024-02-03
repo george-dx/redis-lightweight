@@ -1,11 +1,12 @@
+mod config;
 mod database;
 
+use config::config::Config;
 use database::database::Database;
 use std::io::{prelude::*, Error};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
 use std::time::Duration;
-use std::env::args;
 
 const BUFFER_SIZE: usize = 1024;
 const PING: &str = "*1\r\n$4\r\nping\r\n";
@@ -16,42 +17,13 @@ const GET: &str = "$3\r\nget\r\n";
 const CONFIG: &str = "$6\r\nconfig\r\n$";
 const OK: &str = "+OK\r\n";
 
-struct Config {
-    dir: Option<String>,
-    dbfilename: Option<String>,
-}
-
-impl Config {
-    pub fn new() -> Self {
-        Self {
-            dir: None,
-            dbfilename: None,
-        }
-    }
-
-    pub fn set(&mut self) {
-        let args = args().collect::<Vec<_>>();
-        if args.contains(&String::from("--dir")){
-            self.dir = args.get(args.iter().position(|n| n == "--dir").unwrap() + 1).cloned();
-        }
-        if args.contains(&String::from("--dbfilename")){
-            self.dbfilename = args.get(args.iter().position(|n| n == "--dbfilename").unwrap() + 1).cloned();
-        }
-    }
-
-    pub fn get(&self, key: &str) -> Option<String> {
-        match key.to_lowercase().as_str() {
-            "dir" => self.dir.clone(),
-            "dbfilename" => self.dbfilename.clone(),
-            _ => None,
-        }
-    }
-}
-
 fn to_bulk_string(get_type: &str, message: &str) -> String {
     let message_len = message.len();
     let type_len = get_type.len();
-    format!("*2\r\n${}\r\n{}\r\n${}\r\n{}\r\n", type_len, get_type, message_len, message)
+    format!(
+        "*2\r\n${}\r\n{}\r\n${}\r\n{}\r\n",
+        type_len, get_type, message_len, message
+    )
 }
 
 fn respond_with_message(stream: &mut TcpStream, command: &str) {
@@ -131,13 +103,13 @@ fn handle_connection(stream: Result<TcpStream, Error>) {
             } else if command_str.contains(GET) && !command_str.contains(CONFIG) {
                 database_get(&mut db, &mut _stream, command_str);
             } else if command_str.contains(CONFIG) {
-                let message_type ;
+                let message_type;
                 if command_str.contains("dir") {
                     message_type = "dir";
                 } else {
                     message_type = "dbfilename";
                 }
-                if let Some(message) = config.get(message_type){
+                if let Some(message) = config.get(message_type) {
                     let _ = _stream.write_all(to_bulk_string(message_type, &message).as_bytes());
                 }
             } else {
