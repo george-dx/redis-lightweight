@@ -5,6 +5,7 @@ use std::io::{prelude::*, Error};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
 use std::time::Duration;
+use std::env::args;
 
 const BUFFER_SIZE: usize = 1024;
 const PING: &str = "*1\r\n$4\r\nping\r\n";
@@ -25,6 +26,16 @@ impl Config {
         Self {
             dir: None,
             dbfilename: None,
+        }
+    }
+
+    pub fn set(&mut self) {
+        let args = args().collect::<Vec<_>>();
+        if args.contains(&String::from("--dir")){
+            self.dir = args.get(args.iter().position(|n| n == "--dir").unwrap() + 1).cloned();
+        }
+        if args.contains(&String::from("--dbfilename")){
+            self.dbfilename = args.get(args.iter().position(|n| n == "--dbfilename").unwrap() + 1).cloned();
         }
     }
 
@@ -99,6 +110,8 @@ fn database_get(database: &mut Database, stream: &mut TcpStream, command: &str) 
 
 fn handle_connection(stream: Result<TcpStream, Error>) {
     let mut db = Database::new();
+    let mut config = Config::new();
+    config.set();
     match stream {
         Ok(mut _stream) => loop {
             let mut buffer = [0; BUFFER_SIZE];
@@ -124,13 +137,8 @@ fn handle_connection(stream: Result<TcpStream, Error>) {
                 } else {
                     message_type = "dbfilename";
                 }
-                let splitted_command = command.split("$").collect::<Vec<&str>>();
-                if let Some(value) = db.get(splitted_command[2].to_string()) {
-                    let response_parts = value.split("\r\n").collect::<Vec<&str>>();
-                    let response = response_parts[1];
-                    let _ = _stream.write_all(to_bulk_string(message_type,response).as_bytes());
-                } else {
-                    let _ = _stream.write_all("$-1\r\n".as_bytes());
+                if let Some(message) = config.get(message_type){
+                    let _ = _stream.write_all(to_bulk_string(message_type, &message).as_bytes());
                 }
             } else {
                 println!("Unknown command: {:?}", command);
