@@ -5,11 +5,11 @@ mod database_interactor;
 use config::config::Config;
 use database::database::Database;
 use database_interactor::database_interactor::DatabaseInteractor;
-use std::io::{prelude::*, Error, self, BufReader, BufRead};
+use std::io::{prelude::*, Error, BufReader};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
 use std::fs::File;
-use std::path::Path;
+
 
 const BUFFER_SIZE: usize = 1024;
 const PING: &str = "*1\r\n$4\r\nping\r\n";
