@@ -5,9 +5,11 @@ mod database_interactor;
 use config::config::Config;
 use database::database::Database;
 use database_interactor::database_interactor::DatabaseInteractor;
-use std::io::{prelude::*, Error};
+use std::io::{prelude::*, Error, self, BufReader, BufRead};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
+use std::fs::File;
+use std::path::Path;
 
 const BUFFER_SIZE: usize = 1024;
 const PING: &str = "*1\r\n$4\r\nping\r\n";
@@ -17,6 +19,19 @@ const SET: &str = "$3\r\nset\r\n";
 const GET: &str = "$3\r\nget\r\n";
 const CONFIG: &str = "$6\r\nconfig\r\n$";
 const OK: &str = "+OK\r\n";
+
+
+fn find_key_in_file(path: &String) -> Result<String, Box<dyn std::error::Error>> {
+    let file = File::open(path)?;
+    let mut reader = BufReader::new(file);
+
+    let mut buffer: [u8; 32] = [0; 32];
+    reader.read_exact(&mut buffer)?;
+
+    let key = std::str::from_utf8(&buffer)?.to_string();
+
+    Ok(key)
+}
 
 fn to_bulk_string(get_type: &str, message: &str) -> String {
     let message_len = message.len();
