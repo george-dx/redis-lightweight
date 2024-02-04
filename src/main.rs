@@ -33,6 +33,7 @@ fn find_key_in_file(path: &String) -> Result<String, Box<dyn std::error::Error>>
     Ok(key)
 }
 
+
 fn to_bulk_string(get_type: &str, message: &str) -> String {
     let message_len = message.len();
     let type_len = get_type.len();
@@ -86,6 +87,17 @@ fn handle_connection(stream: Result<TcpStream, Error>) {
                 }
                 if let Some(message) = config.get(message_type) {
                     let _ = _stream.write_all(to_bulk_string(message_type, &message).as_bytes());
+                }
+            } else if command_str.contains("keys"){
+                if let Some(path) = config.get("dbfilename") {
+                    match find_key_in_file(&path) {
+                        Ok(keys) => {
+                            let _ = _stream.write_all(format!("*1\r\n${}\r\n{}\r\n", keys.len() , keys ).as_bytes());
+                        },
+                        Err(_) => {
+                            let _ = _stream.write_all("$-1\r\n".as_bytes());
+                        }
+                    };
                 }
             } else {
                 println!("Unknown command: {:?}", command);
