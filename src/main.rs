@@ -7,6 +7,7 @@ use database::database::Database;
 use database_interactor::database_interactor::DatabaseInteractor;
 use std::io::{prelude::*, Error, BufReader};
 use std::net::{TcpListener, TcpStream};
+use std::path::Path;
 use std::thread;
 use std::fs::File;
 
@@ -21,16 +22,16 @@ const CONFIG: &str = "$6\r\nconfig\r\n$";
 const OK: &str = "+OK\r\n";
 
 
-fn find_key_in_file(path: &String) -> Result<String, Box<dyn std::error::Error>> {
+fn find_key_in_file(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file);
 
     let mut buffer: [u8; 32] = [0; 32];
     reader.read_exact(&mut buffer)?;
 
-    let key = std::str::from_utf8(&buffer)?.to_string();
+    let keys = std::str::from_utf8(&buffer)?.to_string();
 
-    Ok(key)
+    Ok(keys)
 }
 
 
@@ -90,8 +91,10 @@ fn handle_connection(stream: Result<TcpStream, Error>) {
                 }
             } else if command_str.contains("keys"){
                 if let Some(path) = config.get("dbfilename") {
-                    match find_key_in_file(&path) {
+                    match find_key_in_file(Path::new(&path)) {
+
                         Ok(keys) => {
+                            println!("@@@@@{}", keys);
                             let _ = _stream.write_all(format!("*1\r\n${}\r\n{}\r\n", keys.len() , keys ).as_bytes());
                         },
                         Err(_) => {
