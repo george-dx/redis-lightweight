@@ -12,6 +12,10 @@ impl Database {
         Database { db: HashMap::new() }
     }
 
+    pub fn get_keys(&self) -> HashMap<String, (String, Option<SystemTime>)> {
+        return self.db.clone();
+    }
+
     pub fn get(&self, key: String) -> Option<&String> {
         if let Some((value, exp_time)) = self.db.get(&key) {
             if exp_time.is_none() || (exp_time.unwrap() > SystemTime::now()) {

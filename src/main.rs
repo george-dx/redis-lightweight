@@ -5,12 +5,11 @@ mod database_interactor;
 use config::config::Config;
 use database::database::Database;
 use database_interactor::database_interactor::DatabaseInteractor;
-use std::io::{prelude::*, Error, BufReader};
+use std::fs::File;
+use std::io::{prelude::*, BufReader, Error};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
 use std::thread;
-use std::fs::File;
-
 
 const BUFFER_SIZE: usize = 1024;
 const PING: &str = "*1\r\n$4\r\nping\r\n";
@@ -21,8 +20,7 @@ const GET: &str = "$3\r\nget\r\n";
 const CONFIG: &str = "$6\r\nconfig\r\n$";
 const OK: &str = "+OK\r\n";
 
-
-fn find_key_in_file(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
+fn _find_key_in_file(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file);
 
@@ -33,7 +31,6 @@ fn find_key_in_file(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
 
     Ok(keys)
 }
-
 
 fn to_bulk_string(get_type: &str, message: &str) -> String {
     let message_len = message.len();
@@ -89,18 +86,22 @@ fn handle_connection(stream: Result<TcpStream, Error>) {
                 if let Some(message) = config.get(message_type) {
                     let _ = _stream.write_all(to_bulk_string(message_type, &message).as_bytes());
                 }
-            } else if command_str.contains("keys"){
-                if let Some(path) = config.get("dbfilename") {
-                    match find_key_in_file(Path::new(&path)) {
-
-                        Ok(keys) => {
-                            println!("@@@@@{}", keys);
-                            let _ = _stream.write_all(format!("*1\r\n${}\r\n{}\r\n", keys.len() , keys ).as_bytes());
-                        },
-                        Err(_) => {
+            } else if command_str.contains("keys") {
+                if let Some(dir) = config.get("dir") {
+                    if let Some(db_filename) = config.get("dbfilename") {
+                        let keys = _find_key_in_file(Path::new(&(dir+"/"+&db_filename)));
+                        println!("YYYYYYYYY {:?}", keys);
+                        // println!("{}",db_interactor.database_get(stream, command))
+                        if let Some(keys) = db_interactor.database_get_keys() {
+                            println!("@@@@@{:?}", keys);
+                            let _ = _stream.write_all(
+                                format!("*1\r\n${}\r\n{:?}\r\n", keys.len(), keys).as_bytes(),
+                            );
+                        } else {
+                            println!("No keys found in db file");
                             let _ = _stream.write_all("$-1\r\n".as_bytes());
-                        }
-                    };
+                        };
+                    }
                 }
             } else {
                 println!("Unknown command: {:?}", command);

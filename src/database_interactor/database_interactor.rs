@@ -52,4 +52,16 @@ impl DatabaseInteractor {
             let _ = stream.write("$-1\r\n".as_bytes());
         };
     }
+
+    pub fn database_get_keys(&self) -> Option<Vec<String>> {
+        let mut keys: Vec<String> = vec![];
+        for (key, _) in self.database.get_keys() {
+            println!("@@@@@@{}", key);
+            keys.push(key);
+        }
+        if keys.is_empty() {
+            return None;
+        }
+        return Some(keys);
+    }
 }
